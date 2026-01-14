@@ -1,0 +1,5 @@
+{
+  "name": "Biddy",
+  "description": "A comprehensive real-time IPL auction simulator featuring live bidding, team budget tracking, squad management, and AI-powered auctioneer commentary.",
+  "requestFramePermissions": []
+}

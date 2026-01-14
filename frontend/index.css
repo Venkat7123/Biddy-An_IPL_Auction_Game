@@ -1,0 +1,21 @@
+/* Main CSS file - styles are mainly handled via Tailwind CDN in index.html */
+/* This file is for any additional custom styles */
+
+/* Ensure custom scrollbar styles work across the app */
+.custom-scrollbar::-webkit-scrollbar { 
+  width: 4px; 
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+  background: #1e293b; 
+  border-radius: 2px; 
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
