@@ -24,6 +24,11 @@ class MemoryStore {
   deleteRoom(roomId: string) {
     this.rooms.delete(roomId);
   }
+
+  getAuction(roomId: string) {
+    const room = this.rooms.get(roomId);
+    return room ? room.auction : null;
+  }
 }
 
 const store = new MemoryStore();
