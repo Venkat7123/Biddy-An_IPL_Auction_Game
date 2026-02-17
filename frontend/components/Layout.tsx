@@ -29,14 +29,13 @@ const Layout: React.FC<LayoutProps> = ({
       {header}
       {summaryBar}
       {toast}
-      
-      <div className="flex-1 flex overflow-hidden">
+
+      <div className="flex-1 flex overflow-hidden lg:pb-12">
         {leftSidebar}
-        
+
+        {/* Main Content Area - direct parent of MainPanel */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            {mainPanel}
-          </div>
+          {mainPanel}
         </div>
 
         {rightSidebar}
@@ -66,8 +65,8 @@ const Layout: React.FC<LayoutProps> = ({
         </button>
       </div>
 
-      {/* Footer - hidden on mobile when nav is visible */}
-      <div className="hidden lg:block fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-4 text-center z-50 shadow-2xl">
+      {/* Footer - hidden on mobile where nav bar is */}
+      <div className="hidden lg:block fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-4 text-center z-50">
         <p className="text-[10px] text-slate-500 font-bold">Made with ❤️ by Venkat</p>
       </div>
 

@@ -1,144 +1,97 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Biddy - IPL Auction Game 🏏
 
-# 🎮 Biddy - Online Multiplayer Auction Game
+Biddy is a real-time multiplayer IPL Auction simulation game where users can host their own auctions, bid for players, manage squads, and compete to build the ultimate team. It features a robust real-time bidding system, chat functionality, and immersive auction dynamics.
 
-A real-time multiplayer auction game where players from around the world can join rooms and bid on players!
+## 🌟 Features
 
-## 🚀 Quick Start (Local Development)
-
-**Prerequisites:** Node.js 18+
-
-### 1. Backend Setup
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### 2. Frontend Setup (new terminal)
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:3000 to play!
-
----
-
-## 🌍 Deploy for Global Multiplayer
-
-To allow players worldwide to connect, you need to deploy both the backend and frontend to the cloud.
-
-### Option 1: Deploy Backend to Render (Free Tier)
-
-1. Push your code to GitHub
-2. Go to [render.com](https://render.com) and create a new **Web Service**
-3. Connect your GitHub repo and select the `backend` folder
-4. Configure:
-   - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `npm start`
-   - **Environment Variables:**
-     - `PORT`: `4000` (or let Render auto-assign)
-     - `ALLOWED_ORIGINS`: Your frontend URL (e.g., `https://your-app.vercel.app`)
-5. Deploy and copy your backend URL (e.g., `https://biddy-backend.onrender.com`)
-
-### Option 2: Deploy Backend to Railway
-
-1. Go to [railway.app](https://railway.app)
-2. Create new project from GitHub
-3. Select the `backend` folder
-4. Set environment variables:
-   - `PORT`: `${{RAILWAY_PORT}}` (Railway auto-assigns)
-   - `ALLOWED_ORIGINS`: Your frontend URL
-5. Deploy and get your backend URL
-
-### Deploy Frontend to Vercel
-
-1. Go to [vercel.com](https://vercel.com)
-2. Import your GitHub repo
-3. Set root directory to `frontend`
-4. Add environment variables:
-   - `VITE_API_URL`: `https://your-backend-url.com/api`
-   - `VITE_SOCKET_URL`: `https://your-backend-url.com`
-5. Deploy!
-
-### Deploy Frontend to Netlify
-
-1. Go to [netlify.com](https://netlify.com)
-2. Connect your GitHub repo
-3. Configure:
-   - **Base directory:** `frontend`
-   - **Build command:** `npm run build`
-   - **Publish directory:** `frontend/dist`
-4. Add environment variables:
-   - `VITE_API_URL`: `https://your-backend-url.com/api`
-   - `VITE_SOCKET_URL`: `https://your-backend-url.com`
-5. Deploy!
-
----
-
-## 🔧 Environment Variables
-
-### Backend (`backend/.env`)
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `4000` |
-| `HOST` | Bind address | `0.0.0.0` |
-| `ALLOWED_ORIGINS` | CORS origins (comma-separated) | `*` |
-
-### Frontend (`frontend/.env`)
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:4000/api` |
-| `VITE_SOCKET_URL` | Socket.IO server URL | `http://localhost:4000` |
-| `GEMINI_API_KEY` | Gemini API key (optional) | - |
-
----
-
-## 🎯 How to Play
-
-1. **Create a Room**: One player creates a game room
-2. **Share the Room Code**: Other players join using the room code
-3. **Start Auction**: The host starts the auction
-4. **Bid!**: Players bid on auction items in real-time
-5. **Win**: Highest bidder wins each item!
-
----
-
-## 📁 Project Structure
-
-```
-biddy/
-├── backend/          # Node.js + Express + Socket.IO server
-│   ├── src/
-│   │   ├── server.ts     # Main server entry
-│   │   ├── app.ts        # Express app
-│   │   ├── sockets/      # Real-time socket handlers
-│   │   └── routes/       # REST API routes
-│   └── package.json
-│
-└── frontend/         # React + Vite client
-    ├── App.tsx
-    ├── components/
-    ├── services/
-    │   ├── apiClient.ts      # REST API calls
-    │   └── socketClient.ts   # Socket.IO connection
-    └── package.json
-```
-
----
+- **Real-time Bidding**: Live synchronized auction room using Socket.IO.
+- **Multiplayer**: Support for multiple users joining a room as different IPL franchises.
+- **Roles**: 
+    - **Host**: Controls the auction flow (start auction, skip players, skip sets, change timers, manage RTM).
+    - **Manager**: Bids for players to build their squad.
+    - **Spectator**: Watches the action unfold.
+- **RTM (Right to Match)**: Implements the official IPL RTM rule, allowing former teams to match the highest bid.
+- **Chat System**: Real-time broadcast chat for auction updates and banter.
+- **Squad Management**: View squad composition, purse remaining, and player stats.
+- **Mobile Responsive**: Optimized UI for both desktop and mobile devices.
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React, TypeScript, Vite
-- **Backend:** Node.js, Express, Socket.IO
-- **Real-time:** WebSocket connections via Socket.IO
+- **Frontend**: React, TypeScript, Tailwind CSS, Vite
+- **Backend**: Node.js, Express, Socket.IO, TypeScript
+- **State Management**: React Hooks & Context (Frontend), In-Memory Store (Backend)
+
+## 📂 Project Structure
+
+```
+biddy/
+├── backend/            # Node.js + Socket.IO Server
+│   ├── src/
+│   │   ├── services/   # Business logic services
+│   │   ├── sockets/    # Socket event handlers (host, chat, auction)
+│   │   ├── store/      # In-memory room & state storage
+│   │   └── shared/     # Shared types & constants
+│   └── ...
+├── frontend/           # React + Vite Client
+│   ├── components/     # UI Components (AuctionScreen, ChatPanel, etc.)
+│   ├── services/       # API & Socket clients
+│   ├── App.tsx         # Main routing & layout
+│   └── ...
+└── ...
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v16+)
+- npm or yarn
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/Venkat7123/Biddy-An_IPL_Auction_Game.git
+    cd Biddy-An_IPL_Auction_Game
+    ```
+
+2.  **Setup Backend:**
+    ```bash
+    cd backend
+    npm install
+    cp .env.example .env  # Configure PORT, ALLOWED_ORIGINS
+    npm run dev
+    ```
+
+3.  **Setup Frontend:**
+    ```bash
+    cd ../frontend
+    npm install
+    # Update .env if needed (VITE_SOCKET_URL=http://localhost:4000)
+    npm run dev
+    ```
+
+4.  **Open the App:**
+    Visit `http://localhost:5173` in your browser.
+
+## 🎮 How to Play
+
+1.  **Create a Room**: Go to "Host Auction", enter your name, and create a public or private room.
+2.  **Join a Room**: Share the Room ID or Link with friends. They can join as Managers of different teams.
+3.  **Start Auction**: Once all managers are ready, the Host starts the auction.
+4.  **Bidding**:
+    - Players appear one by one from different sets.
+    - Click the bid button to place a bid.
+    - The timer resets on every new bid.
+5.  **Winning**: The highest bidder when the timer runs out wins the player!
+6.  **RTM**: If a player's former team is present and has RTM cards, they get a chance to match the winning bid.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request.
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
 
 ---
-
-## 📝 License
-
-MIT

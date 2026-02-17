@@ -16,6 +16,7 @@ interface MainPanelProps {
   placeBid: () => void;
   startNextPlayer: () => void;
   finalizeSale: (rtmUsed: boolean) => void;
+  submitRTMDecision: (decision: boolean) => void;
 }
 
 const MainPanel: React.FC<MainPanelProps> = ({
@@ -30,7 +31,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
   myTeamId,
   placeBid,
   startNextPlayer,
-  finalizeSale
+  finalizeSale,
+  submitRTMDecision
 }) => {
   const isSold = room.auction.status === 'sold';
   const isUnsold = room.auction.status === 'unsold';
@@ -54,11 +56,11 @@ const MainPanel: React.FC<MainPanelProps> = ({
               {isSold ? '🔨' : '🚫'}
             </span>
           </div>
-          
+
           <h2 className={`text-4xl md:text-6xl font-black uppercase tracking-tighter mb-2 ${isSold ? 'text-green-400' : 'text-red-500'}`}>
             {isSold ? 'Sold!' : 'Unsold'}
           </h2>
-          
+
           {isSold && currentPlayer && (
             <div className="mt-4 animate-in slide-in-from-bottom-4 duration-700">
               <p className="text-white text-xl md:text-2xl font-black uppercase mb-3 flex items-center justify-center gap-2">
@@ -84,8 +86,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
           )}
 
           {isHost && (
-            <button 
-              onClick={startNextPlayer} 
+            <button
+              onClick={startNextPlayer}
               className="mt-12 bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-black px-8 md:px-12 py-4 md:py-5 rounded-3xl text-lg md:text-xl shadow-2xl transition-all hover:scale-105 active:scale-95 uppercase tracking-wider"
             >
               Call Next Player
@@ -108,8 +110,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
             The gavel is poised. Teams are ready. Budget checks complete. Let the mega auction begin.
           </p>
           {isHost && (
-            <button 
-              onClick={startNextPlayer} 
+            <button
+              onClick={startNextPlayer}
               className="mt-10 bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-black px-8 md:px-12 py-4 md:py-5 rounded-3xl text-lg md:text-xl shadow-2xl transition-all hover:scale-105 active:scale-95 uppercase tracking-wider"
             >
               Start Auction
@@ -121,7 +123,7 @@ const MainPanel: React.FC<MainPanelProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-4 md:p-8 relative overflow-y-auto custom-scrollbar h-full bg-slate-950/30">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 md:p-8 relative overflow-y-auto custom-scrollbar w-full h-full bg-slate-950/30 pb-48 md:pb-32">
       <div className="w-full max-w-2xl py-4 md:py-8">
         <div className="flex flex-col items-center">
           <div className={`w-full bg-slate-900/80 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border-2 border-slate-800 shadow-2xl relative transition-all ${isBidding ? 'scale-[1.02] ring-8 ring-yellow-400/10' : ''}`}>
@@ -147,7 +149,7 @@ const MainPanel: React.FC<MainPanelProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-2 md:mt-4">
                 <div className="bg-slate-950 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-800 flex flex-col items-center justify-center shadow-inner">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2 md:mb-4">Current High Bid</p>
@@ -155,9 +157,17 @@ const MainPanel: React.FC<MainPanelProps> = ({
                     <span className="text-4xl md:text-6xl font-black text-yellow-400 tracking-tighter tabular-nums">₹{room.auction.currentBid.toFixed(2)}</span>
                     <span className="text-lg md:text-2xl font-black text-yellow-400/40">Cr</span>
                   </div>
-                  <p className="mt-4 md:mt-6 text-[10px] md:text-[11px] font-black uppercase text-white bg-slate-900 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl border border-slate-800">
-                    {room.auction.highestBidderTeamId ? `Leader: ${room.auction.highestBidderTeamId.toUpperCase()}` : 'OPENING BID'}
-                  </p>
+                  {room.auction.highestBidderTeamId ? (() => {
+                    const leaderTeam = TEAMS.find(t => t.id === room.auction.highestBidderTeamId);
+                    return (
+                      <div className="mt-4 md:mt-6 flex items-center gap-3 bg-yellow-400/10 px-5 md:px-6 py-2.5 md:py-3 rounded-2xl border border-yellow-400/30">
+                        {leaderTeam?.logoUrl && <img src={leaderTeam.logoUrl} alt={leaderTeam.shortName} className="w-7 h-7 md:w-9 md:h-9 object-contain" />}
+                        <span className="text-yellow-400 font-black text-sm md:text-lg uppercase tracking-wider">{leaderTeam?.name || room.auction.highestBidderTeamId.toUpperCase()}</span>
+                      </div>
+                    );
+                  })() : (
+                    <p className="mt-4 md:mt-6 text-[10px] md:text-[11px] font-black uppercase text-white bg-slate-900 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl border border-slate-800">OPENING BID</p>
+                  )}
                 </div>
                 <div className="bg-slate-950 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-800 flex flex-col items-center justify-center shadow-inner">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4 md:mb-6">Hammer Time</p>
@@ -203,14 +213,14 @@ const MainPanel: React.FC<MainPanelProps> = ({
 
                   {isMyRtm ? (
                     <div className="flex flex-col w-full gap-2 md:gap-3">
-                      <button 
-                        onClick={() => finalizeSale(true)} 
+                      <button
+                        onClick={() => submitRTMDecision(true)}
                         className="w-full bg-white hover:bg-slate-100 text-indigo-900 font-black py-4 md:py-6 rounded-[1.5rem] md:rounded-[2rem] text-xl md:text-2xl uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02] active:scale-100 ring-4 ring-white/20"
                       >
                         YES, EXERCISE RTM
                       </button>
-                      <button 
-                        onClick={() => finalizeSale(false)} 
+                      <button
+                        onClick={() => submitRTMDecision(false)}
                         className="text-indigo-300 hover:text-white font-black text-[10px] uppercase tracking-[0.2em] py-3 transition-colors underline underline-offset-8"
                       >
                         NO, PASS TO HIGHEST BIDDER
@@ -219,8 +229,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
                   ) : (
                     <div className="flex flex-col items-center gap-4 md:gap-5 w-full">
                       <div className="w-full h-2 bg-indigo-950/50 rounded-full overflow-hidden border border-indigo-500/20">
-                        <div 
-                          className="h-full bg-indigo-400 transition-all duration-1000 ease-linear" 
+                        <div
+                          className="h-full bg-indigo-400 transition-all duration-1000 ease-linear"
                           style={{ width: `${(rtmTimer / 10) * 100}%` }}
                         ></div>
                       </div>

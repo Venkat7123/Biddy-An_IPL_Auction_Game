@@ -48,6 +48,8 @@ export interface TeamState {
   ownerId?: string;
   // Added to fix property mismatch in Home.tsx
   retainedCount?: number;
+  logoUrl?: string; // Added for UI
+  color?: string;   // Added for UI
 }
 
 export interface ChatMessage {
@@ -93,6 +95,13 @@ export interface GameRoom {
     rtmTimeLeft?: number;
     slabIndex?: number;
     playerIndex?: number;
+    auctionEndTime?: number;
   };
   chat: ChatMessage[];
+  lastNotification?: {
+    id: string;
+    message: string;
+    type: 'success' | 'info' | 'error';
+    duration: number;
+  };
 }

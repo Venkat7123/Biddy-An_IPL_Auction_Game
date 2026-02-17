@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { UserSession, GameRoom, TeamState, PlayerPoolItem, SquadPlayer } from './types';
-import { TEAMS, TEAM_RETENTIONS, PLAYERS } from './constants';
-import { roomStore } from './services/roomStore';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { UserSession, GameRoom } from './types';
+import { createRoom, getRoomSummary, getPublicRooms } from './services/apiClient';
+import socket from './services/socketClient';
 
 interface HomeProps {
   onJoinRoom?: (room: GameRoom) => void;
@@ -10,119 +11,99 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ onJoinRoom, existingUser, onUpdateName }) => {
+  const location = useLocation();
   const [roomCode, setRoomCode] = useState('');
-  const publicRoomsList = roomStore.getPublicRooms();
+  const [publicRoomsList, setPublicRoomsList] = useState<{ id: string; name: string; hostName: string; playersCount: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Auto-fill room code from URL if landing on /warroom/:code
+  useEffect(() => {
+    const match = location.pathname.match(/\/warroom\/([A-Za-z0-9]+)/);
+    if (match && match[1]) {
+      setRoomCode(match[1].toUpperCase());
+    }
+  }, [location.pathname]);
 
   const isNameValid = existingUser.name.trim().length > 0;
 
-  const createRoom = (isPublic: boolean) => {
-    const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    const initialTeams: Record<string, TeamState> = {};
-    TEAMS.forEach(t => {
-      const ret = TEAM_RETENTIONS[t.id];
-      const squad: SquadPlayer[] = ret.players.map(playerData => {
-        const pName = playerData.name;
-        const isOS = ["Matheesha Pathirana", "Nicholas Pooran", "Tristan Stubbs", "Heinrich Klaasen", "Pat Cummins", "Travis Head", "Rashid Khan", "Shimron Hetmyer"].includes(pName);
-        return {
-          id: `ret-${pName.replace(/\s+/g, '-').toLowerCase()}`,
-          name: pName,
-          country: playerData.country,
-          role: playerData.role,
-          basePrice: 0,
-          cappedUncapped: 'Capped',
-          age: 28,
-          setNo: 0,
-          slabCategory: 'Retained',
-          previousIPLTeams: t.shortName,
-          rtms: '',
-          isOverseas: isOS,
-          boughtPrice: ret.cost / ret.players.length,
-          isRetained: true,
-          formerTeamId: t.id
-        };
-      });
 
-      initialTeams[t.id] = {
-        id: t.id,
-        name: t.name,
-        shortName: t.shortName,
-        ownerId: '',
-        purse: 120 - ret.cost,
-        squad: squad,
-        rtmCards: ret.rtm,
-        retainedCount: ret.players.length
-      };
-    });
+  useEffect(() => {
+    loadPublicRooms();
 
-    const playersPool: Record<string, PlayerPoolItem> = {};
-    PLAYERS.forEach(p => {
-      playersPool[p.id] = { status: 'PENDING' };
-    });
-
-    const newRoom: GameRoom = {
-      id: roomId,
-      name: `${existingUser.name}'s Mega Auction`,
-      hostId: existingUser.id,
-      roomType: isPublic ? 'PUBLIC' : 'PRIVATE',
-      status: 'lobby',
-      players: {
-        [existingUser.id]: { name: existingUser.name, teamId: null, isAdmin: true, isSpectator: false }
-      },
-      teams: initialTeams,
-      playersPool,
-      auction: {
-        currentPlayerId: null,
-        currentBid: 0,
-        highestBidderId: null,
-        highestBidderTeamId: null,
-        status: 'idle',
-        timeLeft: 15,
-        bidTimeLimit: 15,
-        rtmTimeLeft: 10,
-        rtmTeamId: null,
-        slabIndex: 0,
-        playerIndex: 0,
-        currentSetNo: null,
-        currentSlabCategory: 'NONE',
-        bidIncrement: 0.1
-      },
-      chat: [{
-        id: 'sys-1',
-        senderName: 'System',
-        text: `Mega Auction Room ${roomId} is ready.`,
-        type: 'system',
-        timestamp: Date.now()
-      }],
+    const handleNewRoom = (roomSummary: { id: string; name: string; hostName: string; playersCount: number }) => {
+      setPublicRoomsList(prev => [roomSummary, ...prev]);
     };
 
-    if (isPublic) {
-      roomStore.addPublicRoom(newRoom);
+    const handleRoomRemoved = ({ roomId }: { roomId: string }) => {
+      setPublicRoomsList(prev => prev.filter(r => r.id !== roomId));
+    };
+
+    socket.on("public_room_added", handleNewRoom);
+    socket.on("public_room_removed", handleRoomRemoved);
+
+    return () => {
+      socket.off("public_room_added", handleNewRoom);
+      socket.off("public_room_removed", handleRoomRemoved);
+    };
+  }, []);
+
+  const loadPublicRooms = async () => {
+    try {
+      const rooms = await getPublicRooms();
+      setPublicRoomsList(rooms);
+    } catch (error) {
+      console.error("Failed to load public rooms", error);
     }
-    
-    onJoinRoom?.(newRoom);
   };
 
-  const joinByCode = () => {
-    const found = publicRoomsList.find(r => r.id === roomCode.toUpperCase());
-    if (found) {
-      // Add current user to the room's players
-      const updatedRoom = {
-        ...found,
-        players: {
-          ...found.players,
-          [existingUser.id]: { name: existingUser.name, teamId: null, isAdmin: false, isSpectator: false }
-        }
-      };
-      roomStore.addPublicRoom(updatedRoom); // Update the room in store
-      onJoinRoom?.(updatedRoom);
-    } else {
-      alert("Room not found. Only active public arenas can be joined via search.");
+  const handleCreateRoom = async (isPublic: boolean) => {
+    setIsLoading(true);
+    try {
+      const response = await createRoom(existingUser.name, isPublic, existingUser.id);
+      // The endpoint returns { roomId, userId, room }
+      // We need to match what onJoinRoom expects (GameRoom)
+      // Check room.routes.ts response structure: res.json({ roomId, userId, room: newRoom });
+      // The client request generic is <{ roomId: string }> in the current file but we updated it implicitly
+      // Let's cast or update apiClient if needed, but for now assuming response works.
+      // Actually apiClient request<{ roomId: string }> might be too narrow if we don't change it.
+      // But `response` will contain the full JSON.
+      // Let's assume response any for now or trust it returns the object.
+      // Wait, apiClient createRoom signature is `return request<{ roomId: string }>...`
+      // I should probably update apiClient to return more or just cast here.
+      // The route returns `room`.
+
+      // Let's update apiClient in a separate step or just cast here.
+      // Using "as any" for quick fix, but cleaner to update types.
+      const data = response as any;
+
+      onJoinRoom?.(data.room);
+    } catch (error) {
+      console.error("Failed to create room", error);
+      alert("Failed to create room. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const joinByCode = async () => {
+    if (!roomCode || !isNameValid) return;
+    setIsLoading(true);
+    try {
+      // Fetch room summary/state
+      // backend/src/routes/room.routes.ts: router.get("/:roomId/summary") returns the room (GameRoom)
+      const room = await getRoomSummary(roomCode.toUpperCase()) as unknown as GameRoom;
+      onJoinRoom?.(room);
+    } catch (error) {
+      console.error("Failed to join room", error);
+      alert("Room not found or error joining.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen auction-gradient flex flex-col items-center justify-start p-6 pt-12 md:pt-20">
+    <div className="min-h-screen auction-gradient flex flex-col items-center justify-start p-6 pt-12 md:pt-20 pb-16">
       <div className="max-w-4xl w-full">
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
           <div className="text-center mb-10">
@@ -148,20 +129,20 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, existingUser, onUpdateName }) =
 
               <div className="grid grid-cols-1 gap-4">
                 <button
-                  onClick={() => createRoom(true)}
-                  disabled={!isNameValid}
+                  onClick={() => handleCreateRoom(true)}
+                  disabled={!isNameValid || isLoading}
                   className={`bg-blue-600 text-white font-black py-4 rounded-xl transition-all shadow-lg uppercase text-xs tracking-widest
-    ${!isNameValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-blue-500 active:scale-95'}`}
+    ${(!isNameValid || isLoading) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-blue-500 active:scale-95'}`}
                 >
-                  Create Public Auction
+                  {isLoading ? 'Creating...' : 'Create Public Auction'}
                 </button>
                 <button
-                  onClick={() => createRoom(false)}
-                  disabled={!isNameValid}
+                  onClick={() => handleCreateRoom(false)}
+                  disabled={!isNameValid || isLoading}
                   className={`bg-purple-600 text-white font-black py-4 rounded-xl transition-all shadow-lg uppercase text-xs tracking-widest
-    ${!isNameValid ? 'opacity-40 cursor-not-allowed' : 'hover:bg-purple-500 active:scale-95'}`}
+    ${(!isNameValid || isLoading) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-purple-500 active:scale-95'}`}
                 >
-                  Create Private Auction
+                  {isLoading ? 'Creating...' : 'Create Private Auction'}
                 </button>
               </div>
 
@@ -178,7 +159,9 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, existingUser, onUpdateName }) =
                   className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white font-black uppercase tracking-widest focus:ring-1 focus:ring-yellow-400 focus:outline-none"
                   placeholder="ENTER ROOM CODE"
                 />
-                <button onClick={joinByCode} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs active:scale-95">Join</button>
+                <button onClick={joinByCode} disabled={isLoading || !isNameValid} className={`bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs active:scale-95 ${(!isNameValid || isLoading) ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                  {isLoading ? '...' : 'Join'}
+                </button>
               </div>
             </div>
 
@@ -197,28 +180,23 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, existingUser, onUpdateName }) =
                   </div>
                 ) : (
                   publicRoomsList.map(room => {
-                    const handleJoinRoom = () => {
-                      // Add current user to the room's players
-                      const updatedRoom = {
-                        ...room,
-                        players: {
-                          ...room.players,
-                          [existingUser.id]: { name: existingUser.name, teamId: null, isAdmin: false, isSpectator: false }
-                        }
-                      };
-                      roomStore.updatePublicRoom(updatedRoom);
-                      onJoinRoom?.(updatedRoom);
-                    };
-                    
                     return (
                       <div key={room.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-slate-500 transition-all">
                         <div className="min-w-0 pr-2">
                           <p className="text-white font-black text-sm truncate uppercase">{room.name}</p>
-                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">Host: {room.players[room.hostId].name}</p>
+                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">Host: {room.hostName}</p>
                         </div>
                         <button
-                          onClick={handleJoinRoom}
-                          className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 px-4 py-2 rounded-lg text-[10px] font-black uppercase active:scale-95"
+                          onClick={() => {
+                            if (!isNameValid) {
+                              alert("Please enter your name first!");
+                              return;
+                            }
+                            setRoomCode(room.id);
+                            getRoomSummary(room.id).then((r: any) => onJoinRoom?.(r));
+                          }}
+                          disabled={!isNameValid}
+                          className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase active:scale-95 ${!isNameValid ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-yellow-400 hover:bg-yellow-500 text-slate-900'}`}
                         >
                           Join
                         </button>
@@ -231,8 +209,8 @@ const Home: React.FC<HomeProps> = ({ onJoinRoom, existingUser, onUpdateName }) =
           </div>
         </div>
       </div>
-      
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-4 text-center z-50 shadow-2xl">
+
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-4 text-center z-50">
         <p className="text-[10px] text-slate-500 font-bold">Made with ❤️ by Venkat</p>
       </div>
     </div>

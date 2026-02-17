@@ -5,6 +5,7 @@ import { UserSession, GameRoom } from './types';
 import Home from './Home';
 import Lobby from './Lobby';
 import AuctionScreen from './AuctionScreen';
+import socket from './services/socketClient';
 
 const AppRoutes: React.FC<{
   user: UserSession | null;
@@ -35,6 +36,7 @@ const AppRoutes: React.FC<{
             userId={user!.id}
             userName={user!.name}
             onLeave={() => {
+              socket.emit("leave_room", { roomId: room.id, userId: user!.id });
               onLeaveRoom();
               navigate('/');
             }}
@@ -57,8 +59,15 @@ const AppRoutes: React.FC<{
             room={room}
             userId={user!.id}
             onLeave={() => {
-              onLeaveRoom();
-              navigate('/');
+              socket.emit("leave_room", { roomId: room.id, userId: user!.id });
+              if (room.hostId === user!.id) {
+                // Host: show FinalSummary
+                setRoom(prev => prev ? { ...prev, status: 'finished' as const } : null);
+              } else {
+                // Regular user: go straight home
+                onLeaveRoom();
+                navigate('/');
+              }
             }}
             setRoom={setRoom}
           />
@@ -79,11 +88,11 @@ const AppRoutes: React.FC<{
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserSession | null>(() => {
-    const savedUser = sessionStorage.getItem('ipl_auction_user');
+    const savedUser = localStorage.getItem('ipl_auction_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [room, setRoom] = useState<GameRoom | null>(() => {
-    const savedRoom = sessionStorage.getItem('ipl_auction_room');
+    const savedRoom = localStorage.getItem('ipl_auction_room');
     return savedRoom ? JSON.parse(savedRoom) : null;
   });
 
@@ -91,13 +100,13 @@ const App: React.FC = () => {
     if (!user) {
       const newUser = { id: Math.random().toString(36).substring(2, 11), name: '', roomId: null };
       setUser(newUser);
-      sessionStorage.setItem('ipl_auction_user', JSON.stringify(newUser));
+      localStorage.setItem('ipl_auction_user', JSON.stringify(newUser));
     }
   }, [user]);
 
   useEffect(() => {
     if (room) {
-      sessionStorage.setItem('ipl_auction_room', JSON.stringify(room));
+      localStorage.setItem('ipl_auction_room', JSON.stringify(room));
     }
   }, [room]);
 
@@ -105,7 +114,7 @@ const App: React.FC = () => {
     if (user) {
       const updatedUser = { ...user, name };
       setUser(updatedUser);
-      sessionStorage.setItem('ipl_auction_user', JSON.stringify(updatedUser));
+      localStorage.setItem('ipl_auction_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -114,7 +123,7 @@ const App: React.FC = () => {
     if (user) {
       setUser({ ...user, roomId: roomData.id });
     }
-    sessionStorage.setItem('ipl_auction_room', JSON.stringify(roomData));
+    localStorage.setItem('ipl_auction_room', JSON.stringify(roomData));
   };
 
   const handleLeaveRoom = () => {
@@ -122,7 +131,7 @@ const App: React.FC = () => {
     if (user) {
       setUser({ ...user, roomId: null });
     }
-    sessionStorage.removeItem('ipl_auction_room');
+    localStorage.removeItem('ipl_auction_room');
   };
 
   if (!user) {

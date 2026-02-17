@@ -9,15 +9,24 @@ interface FinalSummaryProps {
 }
 
 const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
-  // Map team IDs to owner names from the players list
+  // Map team IDs to owner names - check both room.players and room.teams
   const teamOwners: Record<string, string> = {};
+  // First, map from players list
   Object.entries(room.players).forEach(([_, playerData]) => {
     if (playerData.teamId) {
       teamOwners[playerData.teamId] = playerData.name;
     }
   });
+  // Also check room.teams for owners that may have left room.players
+  Object.entries(room.teams).forEach(([teamId, teamState]) => {
+    if (teamState.ownerId && !teamOwners[teamId]) {
+      // Find owner name from players if available, otherwise use "Manager"
+      const ownerPlayer = room.players[teamState.ownerId];
+      teamOwners[teamId] = ownerPlayer?.name || 'Manager';
+    }
+  });
 
-  // Filter only teams that have an owner assigned
+  // Show only teams that have a manager assigned
   const securedTeams = TEAMS.filter(t => !!teamOwners[t.id]);
 
   return (
@@ -34,7 +43,7 @@ const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
               <span className="w-12 h-px bg-slate-800"></span>
             </p>
           </div>
-          <button 
+          <button
             onClick={onExit}
             className="group relative bg-red-600 hover:bg-red-500 text-white font-black px-12 py-5 rounded-[2rem] shadow-[0_20px_50px_rgba(220,38,38,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-lg overflow-hidden"
           >
@@ -61,8 +70,8 @@ const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
                   <div className="flex justify-between items-start mb-8">
                     <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-3 mb-1">
-                         <img src={team.logoUrl} alt={team.shortName} className="w-10 h-10 object-contain drop-shadow-lg" />
-                         <h3 className="text-2xl font-black text-white uppercase tracking-tight truncate">{team.shortName}</h3>
+                        <img src={team.logoUrl} alt={team.shortName} className="w-10 h-10 object-contain drop-shadow-lg" />
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight truncate">{team.shortName}</h3>
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{team.name}</p>
@@ -90,7 +99,7 @@ const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 flex-1 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                     <div className="flex justify-between items-center px-1 mb-4 border-b border-slate-800 pb-2">
                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Player Name</span>
@@ -102,13 +111,12 @@ const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
                       </div>
                     ) : (
                       state.squad.map(p => (
-                        <div 
-                          key={p.id} 
-                          className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${
-                            p.isRetained 
-                            ? 'bg-indigo-600/5 border-indigo-500/20 hover:bg-indigo-600/10' 
+                        <div
+                          key={p.id}
+                          className={`flex justify-between items-center p-3.5 rounded-2xl border transition-all ${p.isRetained
+                            ? 'bg-indigo-600/5 border-indigo-500/20 hover:bg-indigo-600/10'
                             : 'bg-blue-600/5 border-blue-500/20 hover:bg-blue-600/10'
-                          }`}
+                            }`}
                         >
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -132,6 +140,9 @@ const FinalSummary: React.FC<FinalSummaryProps> = ({ room, onExit }) => {
             })}
           </div>
         )}
+      </div>
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-4 text-center z-50">
+        <p className="text-[10px] text-slate-500 font-bold">Made with ❤️ by Venkat</p>
       </div>
     </div>
   );

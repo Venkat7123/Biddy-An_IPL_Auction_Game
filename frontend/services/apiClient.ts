@@ -31,12 +31,17 @@ async function request<T>(
    ROOM APIs
    ========================= */
 
-export function createRoom() {
+export function createRoom(hostName: string, isPublic: boolean, hostUserId?: string) {
   return request<{ roomId: string }>("/rooms", {
     method: "POST",
+    body: JSON.stringify({ hostName, isPublic, hostUserId }),
   });
 }
 
 export function getRoomSummary(roomId: string) {
   return request(`/rooms/${roomId}/summary`);
+}
+
+export function getPublicRooms() {
+  return request<{ id: string; name: string; hostName: string; playersCount: number }[]>("/rooms");
 }

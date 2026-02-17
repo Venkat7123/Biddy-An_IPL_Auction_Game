@@ -12,23 +12,7 @@ interface ChatProps {
 const ChatPanel: React.FC<ChatProps> = ({ room, userId, setRoom }) => {
   const [msg, setMsg] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-  const handleChatUpdate = (message: ChatMessage) => {
-    setRoom(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        chat: [...prev.chat, message],
-      };
-    });
-  };
 
-  socket.on("chat_update", handleChatUpdate);
-
-  return () => {
-    socket.off("chat_update", handleChatUpdate);
-  };
-}, [setRoom]);
 
 
   useEffect(() => {
@@ -38,20 +22,17 @@ const ChatPanel: React.FC<ChatProps> = ({ room, userId, setRoom }) => {
   }, [room.chat]);
 
   const sendMessage = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!msg.trim()) return;
+    e.preventDefault();
+    if (!msg.trim()) return;
 
-  socket.emit("send_message", {
-    roomId: room.id,
-    user: {
-      id: userId,
-      name: room.players[userId].name
-    },
-    text: msg
-  });
+    socket.emit("send_message", {
+      roomId: room.id,
+      userId,
+      message: msg
+    });
 
-  setMsg('');
-};
+    setMsg('');
+  };
 
 
   return (
@@ -60,7 +41,7 @@ const ChatPanel: React.FC<ChatProps> = ({ room, userId, setRoom }) => {
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mega Auction Feed</h3>
         <span className="bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded text-[8px] font-black uppercase">Live</span>
       </div>
-      
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar pb-24 lg:pb-4">
         {room.chat.map((c) => (
           <div key={c.id} className={`animate-in slide-in-from-bottom-1 duration-200 ${c.type === 'system' ? 'bg-slate-900/80 p-3 rounded-2xl border border-slate-800/50 my-1' : ''}`}>
@@ -99,7 +80,7 @@ const ChatPanel: React.FC<ChatProps> = ({ room, userId, setRoom }) => {
             placeholder="Broadcast a message..."
           />
           <button type="submit" className="bg-yellow-400 p-3 rounded-xl text-slate-900 shadow-lg shadow-yellow-400/10 active:scale-90 transition-transform">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
           </button>
         </form>
       </div>
