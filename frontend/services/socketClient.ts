@@ -10,7 +10,7 @@ import { io, Socket } from "socket.io-client";
 
 // Use environment variable or fallback to localhost for development
 // In production, set VITE_SOCKET_URL to your deployed backend URL
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://biddy.onrender.com";
 
 const socket: Socket = io(SOCKET_URL, {
   transports: ["websocket", "polling"], // Allow polling fallback for restrictive networks
